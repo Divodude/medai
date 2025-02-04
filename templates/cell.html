@@ -1,0 +1,43 @@
+{%extends "index.html" %}
+{%load static%}
+{%block card%}
+
+<style>
+  
+    #acd{display:none
+    }
+    .custom-upload-btn {
+      display: inline-block;
+      background-color: #575656;
+      color: black;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      text-align: center;
+    }
+    #input{
+        height:auto;
+    }
+    .card{
+        height:auto;
+        width:auto;
+    }
+    
+    </style>
+<div class="card" id="main" style="width: 30rem; border-radius: 15px; right: 10%;">
+    <img src="{%static 'img.png'%}" id="input">
+  <form action="{% url 'cell' %}" method="POST" enctype="multipart/form-data" id="myForm">
+    {% csrf_token %}
+   <div class="card-body">
+      <label for="acd" class="custom-upload-btn">Choose File</label>
+      <input id="acd"  name="img" type="file" style="background:transparent" />
+      <p class="card-text">Upload your medical file</p>
+      <div style="display: flex; gap: 70%;">
+        <a href="#" onclick="document.getElementById('myForm').submit();" class="btn">Upload</a> 
+    
+      </div>
+    </div>
+  </form>
+</div>
+{%endblock%}
