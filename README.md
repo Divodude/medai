@@ -38,3 +38,4 @@ This one is of previous version ---![Screenshot (2)](https://github.com/user-att
 
 
 AI GENERATED README 😊
+The model is uploaded in the google drive.
