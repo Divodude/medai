@@ -1,5 +1,5 @@
 try:
-    from backend.api.main import app
+    from api.main import app
 except ImportError as e:
     print(f"Import Error: {e}")
     raise e

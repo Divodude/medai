@@ -13,10 +13,10 @@ from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 from langchain_core.tools import tool
 
-from backend.config import GROQ_API_KEY, GROQ_MODEL
-from backend.db.database import get_db
-from backend.db import crud
-from backend.tools.doctor_search import search_doctors as ddg_search_doctors
+from config import GROQ_API_KEY, GROQ_MODEL
+from db.database import get_db
+from db import crud
+from tools.doctor_search import search_doctors as ddg_search_doctors
 
 router = APIRouter()
 

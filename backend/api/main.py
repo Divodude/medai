@@ -4,9 +4,9 @@ FastAPI application entry point.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.db.database import Base, engine
-from backend.db import models  # noqa: F401 — ensure models are registered
-from backend.api.routes import analyze, sessions, chat, doctors
+from db.database import Base, engine
+from db import models  # noqa: F401 — ensure models are registered
+from api.routes import analyze, sessions, chat, doctors
 
 # Create all tables on startup
 Base.metadata.create_all(bind=engine)

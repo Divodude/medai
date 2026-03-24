@@ -1,4 +1,4 @@
-from backend.graph.state import HealthState
+from graph.state import HealthState
 
 
 def should_search_doctors(state: HealthState) -> str:

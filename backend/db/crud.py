@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from sqlalchemy.orm import Session as DBSession
-from backend.db.models import Session, AnalysisResult, DietLog, ExerciseLog, DoctorResult
+from db.models import Session, AnalysisResult, DietLog, ExerciseLog, DoctorResult
 
 
 # ─── Session ────────────────────────────────────────────────────────────────

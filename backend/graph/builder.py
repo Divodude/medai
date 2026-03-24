@@ -1,6 +1,6 @@
 from langgraph.graph import StateGraph, END
-from backend.graph.state import HealthState
-from backend.graph.nodes import (
+from graph.state import HealthState
+from graph.nodes import (
     analyze_report_node,
     generate_diet_plan_node,
     generate_exercise_plan_node,
@@ -8,7 +8,7 @@ from backend.graph.nodes import (
     check_severity_node,
     find_doctors_node,
 )
-from backend.graph.edges import should_search_doctors
+from graph.edges import should_search_doctors
 
 
 def build_graph():

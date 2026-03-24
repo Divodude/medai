@@ -8,9 +8,9 @@ from fastapi import APIRouter, UploadFile, File, Form, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session as DBSession
 
-from backend.db.database import get_db
-from backend.db import crud
-from backend.graph.builder import health_graph
+from db.database import get_db
+from db import crud
+from graph.builder import health_graph
 
 router = APIRouter()
 

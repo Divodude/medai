@@ -4,9 +4,9 @@ GET /doctors — On-demand doctor search with DuckDuckGo.
 from fastapi import APIRouter, Query, Depends
 from sqlalchemy.orm import Session as DBSession
 
-from backend.db.database import get_db
-from backend.db import crud
-from backend.tools.doctor_search import search_doctors
+from db.database import get_db
+from db import crud
+from tools.doctor_search import search_doctors
 
 router = APIRouter()
 

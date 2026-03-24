@@ -3,9 +3,9 @@ import json
 import re
 import logging
 from groq import Groq
-from backend.config import GROQ_API_KEY, GROQ_MODEL
-from backend.graph.state import HealthState
-from backend.tools.doctor_search import search_doctors
+from config import GROQ_API_KEY, GROQ_MODEL
+from graph.state import HealthState
+from tools.doctor_search import search_doctors
 
 logger = logging.getLogger(__name__)
 _groq = Groq(api_key=GROQ_API_KEY)
