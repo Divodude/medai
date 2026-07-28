@@ -1,7 +1,14 @@
 import json
 from datetime import datetime
 from sqlalchemy.orm import Session as DBSession
-from db.models import Session, AnalysisResult, DietLog, ExerciseLog, DoctorResult
+from db.models import (
+    Session,
+    AnalysisResult,
+    AnalysisChunkSummary,
+    DietLog,
+    ExerciseLog,
+    DoctorResult,
+)
 
 
 # ─── Session ────────────────────────────────────────────────────────────────
@@ -30,6 +37,7 @@ def save_analysis(db: DBSession, session_id: str, data: dict) -> AnalysisResult:
         summary=data.get("summary"),
         key_findings=json.dumps(data.get("key_findings", [])),
         specialty=data.get("specialty"),
+        structured_summary=json.dumps(data.get("structured_summary", {})),
         diet_plan=json.dumps(data.get("diet_plan", [])),
         exercise_plan=json.dumps(data.get("exercise_plan", [])),
         home_remedies=json.dumps(data.get("home_remedies", [])),
@@ -38,6 +46,29 @@ def save_analysis(db: DBSession, session_id: str, data: dict) -> AnalysisResult:
     db.commit()
     db.refresh(result)
     return result
+
+
+def save_analysis_chunk_summaries(db: DBSession, analysis_id: int, summaries: list[dict]) -> list:
+    saved = []
+    for item in summaries or []:
+        entry = AnalysisChunkSummary(
+            analysis_id=analysis_id,
+            chunk_index=item.get("chunk_index", 0),
+            summary=item.get("summary", ""),
+        )
+        db.add(entry)
+        saved.append(entry)
+    db.commit()
+    return saved
+
+
+def get_chunk_summaries_for_analysis(db: DBSession, analysis_id: int):
+    return (
+        db.query(AnalysisChunkSummary)
+        .filter(AnalysisChunkSummary.analysis_id == analysis_id)
+        .order_by(AnalysisChunkSummary.chunk_index.asc())
+        .all()
+    )
 
 
 def get_analyses_for_session(db: DBSession, session_id: str):

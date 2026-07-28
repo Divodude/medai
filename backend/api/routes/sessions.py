@@ -57,6 +57,14 @@ def get_session_history(session_id: str, db: DBSession = Depends(get_db)):
                 "diet_plan": json.loads(a.diet_plan or "[]"),
                 "exercise_plan": json.loads(a.exercise_plan or "[]"),
                 "home_remedies": json.loads(a.home_remedies or "[]"),
+                "structured_summary": json.loads(a.structured_summary or "{}"),
+                "chunk_summaries": [
+                    {
+                        "chunk_index": c.chunk_index,
+                        "summary": c.summary,
+                    }
+                    for c in crud.get_chunk_summaries_for_analysis(db, a.id)
+                ],
             }
             for a in analyses
         ],

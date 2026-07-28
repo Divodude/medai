@@ -1,50 +1,37 @@
 from langgraph.graph import StateGraph, END
-from graph.state import HealthState
-from graph.nodes import (
-    analyze_report_node,
-    generate_diet_plan_node,
-    generate_exercise_plan_node,
-    generate_home_remedies_node,
-    check_severity_node,
-    find_doctors_node,
-)
-from graph.edges import should_search_doctors
+from langgraph.prebuilt import ToolNode, tools_condition
+
+from graph.state import RAGState
+from graph.nodes import retrieve_node, agent_node, TOOLS
 
 
 def build_graph():
-    """Compile and return the LangGraph health assistant pipeline."""
-    workflow = StateGraph(HealthState)
+    """Compile and return the RAG LangGraph health assistant pipeline."""
+    workflow = StateGraph(RAGState)
 
     # Register nodes
-    workflow.add_node("analyze_report", analyze_report_node)
-    workflow.add_node("generate_diet", generate_diet_plan_node)
-    workflow.add_node("generate_exercise", generate_exercise_plan_node)
-    workflow.add_node("generate_remedies", generate_home_remedies_node)
-    workflow.add_node("check_severity", check_severity_node)
-    workflow.add_node("find_doctors", find_doctors_node)
+    workflow.add_node("retrieve", retrieve_node)
+    workflow.add_node("agent", agent_node)
+    workflow.add_node("tools", ToolNode(TOOLS))
 
-    # Entry point
-    workflow.set_entry_point("analyze_report")
-
-    # Linear pipeline: analyze → parallel-ish generation → severity check
-    workflow.add_edge("analyze_report", "generate_diet")
-    workflow.add_edge("generate_diet", "generate_exercise")
-    workflow.add_edge("generate_exercise", "generate_remedies")
-    workflow.add_edge("generate_remedies", "check_severity")
-
-    # Conditional: search doctors only if severity is MEDIUM or HIGH
+    # Flow
+    workflow.set_entry_point("retrieve")
+    workflow.add_edge("retrieve", "agent")
+    
+    # Conditional logic: if agent returns tool calls -> tools, else -> END
     workflow.add_conditional_edges(
-        "check_severity",
-        should_search_doctors,
+        "agent",
+        tools_condition,
         {
-            "find_doctors": "find_doctors",
+            "tools": "tools",
             "__end__": END,
-        },
+        }
     )
-    workflow.add_edge("find_doctors", END)
+    
+    # After tools run, go back to agent to synthesize answer
+    workflow.add_edge("tools", "agent")
 
     return workflow.compile()
 
-
 # Singleton graph instance
-health_graph = build_graph()
+rag_graph = build_graph()

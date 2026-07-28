@@ -1,0 +1,186 @@
+AI Health Assistant Backend Flow and Connection Overview
+=======================================================
+
+This file explains how the whole backend works from the frontend request to the LLM response and database storage.
+
+1. ENTRY POINT
+--------------
+- The backend starts from backend/api/main.py.
+- This file creates the FastAPI application, enables CORS, and registers all API routers.
+- The app is started with:
+  uvicorn backend.api.main:app --reload --port 8000
+
+2. MAIN BACKEND COMPONENTS
+--------------------------
+- backend/api/main.py
+  - Creates the FastAPI app.
+  - Registers routes for analysis, chat, sessions, and doctors.
+
+- backend/api/routes/analyze.py
+  - Handles POST /analyze.
+  - Receives uploaded report image and user session data.
+  - Starts the LangGraph pipeline.
+
+- backend/api/routes/chat.py
+  - Handles POST /chat.
+  - Sends follow-up questions to the LLM with context from the analysis.
+  - Uses a tool to search doctors when the user asks for them.
+
+- backend/api/routes/sessions.py
+  - Handles session history, diet/exercise logging, and history retrieval.
+
+- backend/api/routes/doctors.py
+  - Handles on-demand doctor search requests.
+
+- backend/graph/builder.py
+  - Builds the LangGraph workflow.
+
+- backend/graph/nodes.py
+  - Contains each LLM-based processing step.
+
+- backend/graph/edges.py
+  - Controls the decision logic for moving between graph nodes.
+
+- backend/db/crud.py
+  - Saves and reads data from the SQLite database.
+
+- backend/tools/doctor_search.py
+  - Searches for nearby doctors using DuckDuckGo.
+
+3. REQUEST FLOW: MEDICAL REPORT ANALYSIS
+----------------------------------------
+Step A: Frontend sends the image
+- The React frontend sends a POST request to /analyze.
+- The request includes:
+  - uploaded image file
+  - session_id (optional)
+  - lat/lng/city (optional)
+  - patient_name (optional)
+
+Step B: Route receives the request
+- backend/api/routes/analyze.py receives the request.
+- It creates a session in SQLite if one does not already exist.
+- It converts the uploaded image to a base64 data URL.
+
+Step C: Initial state is created
+- The route builds an initial state dictionary containing:
+  - session_id
+  - image_b64
+  - location
+  - messages
+  - condition, severity, summary, key_findings, specialty
+  - diet_plan, exercise_plan, home_remedies, nearby_doctors
+  - error
+
+Step D: LangGraph pipeline starts
+- The graph is invoked using health_graph.ainvoke(initial_state).
+- The workflow runs in sequence through the graph nodes.
+
+4. LANGGRAPH EXECUTION FLOW
+--------------------------
+The graph is built in backend/graph/builder.py with this order:
+
+analyze_report -> generate_diet -> generate_exercise -> generate_remedies -> check_severity -> [optional] find_doctors -> END
+
+Node details:
+- analyze_report
+  - Sends the image to Groq vision model.
+  - Extracts condition, severity, summary, key findings, and specialty.
+
+- generate_diet
+  - Uses Groq chat model to generate a diet plan in JSON format.
+
+- generate_exercise
+  - Uses Groq chat model to generate an exercise plan in JSON format.
+
+- generate_remedies
+  - Uses Groq chat model to generate home remedies in JSON format.
+
+- check_severity
+  - Acts as a routing checkpoint.
+
+- find_doctors (optional)
+  - Runs only if severity is MEDIUM or HIGH.
+  - Searches for doctors based on specialty and city.
+
+5. CONTROL LOGIC FOR DOCTOR SEARCH
+----------------------------------
+- backend/graph/edges.py decides whether to continue to doctor search.
+- If severity is MEDIUM or HIGH -> go to find_doctors.
+- If severity is LOW -> stop the workflow.
+
+6. LLM CONNECTIONS
+------------------
+- The LLM is connected through Groq.
+- The backend uses the Groq Python SDK in backend/graph/nodes.py.
+- The model is configured in backend/config.py.
+
+LLM uses:
+- Vision model for image-based report analysis.
+- Chat model for generating diet, exercise, and remedy cards.
+- ChatGroq with tool-calling for follow-up chat.
+
+7. CHAT FLOW
+------------
+- The frontend sends a message to POST /chat.
+- backend/api/routes/chat.py loads the latest analysis context from the database.
+- It builds a system prompt with the patient's condition and summary.
+- The ChatGroq model answers the prompt.
+- If the user asks about doctors, the model uses the doctor-search tool and returns results.
+- The answer is streamed back to the frontend.
+
+8. DATABASE CONNECTIONS
+-----------------------
+The backend uses SQLite through SQLAlchemy.
+- Database setup is handled in backend/db/database.py.
+- Models are defined in backend/db/models.py.
+
+Main tables:
+- Session
+  - Stores session id and patient name.
+
+- AnalysisResult
+  - Stores the analyzed condition, severity, summary, and generated plans.
+
+- DietLog
+  - Stores logged diet meals.
+
+- ExerciseLog
+  - Stores logged exercise activity.
+
+- DoctorResult
+  - Stores doctor search results for each session.
+
+9. DATA PERSISTENCE FLOW
+------------------------
+- After analysis completes, the result is saved with CRUD functions.
+- If nearby doctors were found, those results are also stored.
+- The history endpoints later fetch this data for the frontend.
+
+10. WHOLE BACKEND SUMMARY
+--------------------------
+Frontend -> FastAPI routes -> LangGraph workflow -> Groq LLM -> optional doctor search tool -> SQLite database -> response back to frontend
+
+In short:
+1. Frontend sends request.
+2. FastAPI route handles the request.
+3. The route creates or uses a session.
+4. LangGraph runs the analysis pipeline.
+5. Groq LLM generates the medical and lifestyle insights.
+6. Optional doctor search runs when needed.
+7. Results are saved into SQLite.
+8. The frontend receives the response and renders the cards and chat UI.
+
+11. IMPORTANT FILES TO REVIEW
+-----------------------------
+- backend/api/main.py
+- backend/api/routes/analyze.py
+- backend/api/routes/chat.py
+- backend/api/routes/sessions.py
+- backend/graph/builder.py
+- backend/graph/nodes.py
+- backend/graph/edges.py
+- backend/db/crud.py
+- backend/config.py
+
+If you want, I can also make a more visual version of this as a Mermaid diagram or a simpler beginner-friendly flowchart.

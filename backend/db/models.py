@@ -31,12 +31,31 @@ class AnalysisResult(Base):
     summary = Column(Text)
     key_findings = Column(Text)      # JSON list as string
     specialty = Column(String)       # Medical specialty for doctor search
+    structured_summary = Column(Text)  # JSON object with structured summary fields
 
     diet_plan = Column(Text)         # JSON
     exercise_plan = Column(Text)     # JSON
     home_remedies = Column(Text)     # JSON
 
+    chunk_summaries = relationship(
+        "AnalysisChunkSummary",
+        back_populates="analysis",
+        cascade="all, delete-orphan",
+    )
+
     session = relationship("Session", back_populates="analyses")
+
+
+class AnalysisChunkSummary(Base):
+    """Stores short summaries for report chunks."""
+    __tablename__ = "analysis_chunk_summaries"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    analysis_id = Column(Integer, ForeignKey("analysis_results.id"), nullable=False)
+    chunk_index = Column(Integer, nullable=False)
+    summary = Column(Text, nullable=False)
+
+    analysis = relationship("AnalysisResult", back_populates="chunk_summaries")
 
 
 class DietLog(Base):
