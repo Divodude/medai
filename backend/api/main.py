@@ -1,5 +1,6 @@
 """
 FastAPI application entry point.
+Updated: force module reload for ETL pipeline updates.
 """
 from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware

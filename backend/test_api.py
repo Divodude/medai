@@ -29,6 +29,22 @@ class TestAPI(unittest.TestCase):
         self.assertIn("condition", res_json)
         print("Analyze response:", res_json)
 
+    def test_large_pdf_simulation(self):
+        import uuid
+        session_id = str(uuid.uuid4())
+        # 15,000 characters simulating Z615.pdf (19 chunks)
+        large_text = (b"Patient Jane Smith (age 52) medical report details. " * 300)
+        files = {"file": ("Z615.pdf", large_text, "application/pdf")}
+        data = {"session_id": session_id, "patient_name": "Jane Smith"}
+        response = client.post("/analyze", files=files, data=data)
+        if response.status_code != 200:
+            print("Large PDF Analyze error:", response.text)
+        self.assertEqual(response.status_code, 200)
+        res_json = response.json()
+        self.assertEqual(res_json["session_id"], session_id)
+        self.assertIn("condition", res_json)
+        print("Large PDF Analyze SUCCESS! Condition:", res_json.get("condition"))
+
     def test_chat_endpoint(self):
         payload = {
             "session_id": "test_session_123",

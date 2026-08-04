@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 import fitz  # PyMuPDF
 import base64
@@ -6,8 +7,18 @@ from typing import List
 
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
+try:
+    from langchain_chroma import Chroma
+except ImportError:
+    from langchain_community.vectorstores import Chroma
 from llm_provider import get_embeddings, get_llm
+
+
+def _safe_collection_name(session_id: str) -> str:
+    safe = re.sub(r"[^a-zA-Z0-9_]", "_", str(session_id or "default"))
+    if not safe or not safe[0].isalpha():
+        safe = "s_" + safe
+    return safe[:63]
 
 
 def extract_text_from_pdf(file_bytes: bytes) -> str:
@@ -134,12 +145,15 @@ def ingest_document(file_bytes: bytes, filename: str, mime: str, session_id: str
     
     # Store in Chroma
     embeddings = get_embeddings()
-    persist_directory = os.path.join(os.path.dirname(__file__), "..", "chroma_db")
-    
+    persist_directory = os.path.normpath(
+        os.path.join(os.path.dirname(__file__), "..", "chroma_db")
+    )
+
     vectorstore = Chroma.from_documents(
         documents=documents,
         embedding=embeddings,
+        collection_name=_safe_collection_name(session_id),
         persist_directory=persist_directory
     )
-    
+
     return text  # Return full text so we can also generate structured output

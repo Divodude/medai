@@ -1,5 +1,6 @@
-from typing import TypedDict, Optional, List
+from typing import TypedDict, Optional, List, Annotated
 from langchain_core.messages import BaseMessage
+from langgraph.graph.message import add_messages
 
 
 class RAGState(TypedDict):
@@ -11,8 +12,8 @@ class RAGState(TypedDict):
     global_profile: Optional[str]
     retrieved_context: Optional[str]
     
-    # Chat history
-    messages: List[BaseMessage]
+    # Chat history (with reducer so ToolNode and agent append messages rather than overwriting)
+    messages: Annotated[List[BaseMessage], add_messages]
     
     # Error passthrough
     error: Optional[str]

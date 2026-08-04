@@ -29,9 +29,11 @@ logger = get_logger(__name__)
 
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
-CHAR_LIMIT_PER_LLM_CALL = 20000
+CHAR_LIMIT_PER_LLM_CALL = 2000   # ~500 tokens; Groq free tier schema overhead is ~5K tokens
+MAX_PROFILE_TEXT_LENGTH = 4000    # Hard cap before chunking; keeps total well under 6K TPM
 
 SPLITTER_SEPARATORS = ["\n\n", "\n", ".", " ", ""]
+
 
 
 # ─── Text Chunking ──────────────────────────────────────────────────────────
@@ -103,7 +105,7 @@ def _recover_json_from_error(error: Exception, target_model: type[BaseModel]) ->
                         pass
                 data = json.loads(json_str)
                 recovered = target_model.model_validate(data)
-                logger.info(f"TRANSFORM | ✓ Successfully recovered '{target_model.__name__}' schema from malformed LLM output!")
+                logger.info(f"TRANSFORM | [OK] Successfully recovered '{target_model.__name__}' schema from malformed LLM output!")
                 return recovered
             except Exception as rec_err:
                 logger.debug(f"TRANSFORM | JSON recovery parsing failed: {rec_err}")
@@ -121,6 +123,10 @@ def _extract_health_profile(full_text: str) -> StructuredHealthProfile:
     Returns:
         StructuredHealthProfile with patient data extracted from the text.
     """
+    if len(full_text) > MAX_PROFILE_TEXT_LENGTH:
+        logger.info(f"TRANSFORM | Document length ({len(full_text)} chars) exceeds maximum profile analysis threshold. Truncating to first {MAX_PROFILE_TEXT_LENGTH} characters for prompt efficiency.")
+        full_text = full_text[:MAX_PROFILE_TEXT_LENGTH]
+
     llm = get_llm(temperature=0.0)
     profile_llm = llm.with_structured_output(StructuredHealthProfile)
 

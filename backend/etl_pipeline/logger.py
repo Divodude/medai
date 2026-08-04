@@ -44,8 +44,15 @@ def get_logger(module_name: str = "etl_pipeline") -> logging.Logger:
 
     logger.setLevel(logging.DEBUG)
 
+    import sys
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
     # ── Console Handler (INFO+) ──────────────────────────────────────────
-    console_handler = logging.StreamHandler()
+    console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(logging.Formatter(LOG_FORMAT, LOG_DATE_FORMAT))
 

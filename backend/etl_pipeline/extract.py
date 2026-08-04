@@ -173,6 +173,11 @@ def extract_text(file_bytes: bytes, filename: str, mime: str) -> str:
         logger.error(f"EXTRACT | Unexpected error during extraction: {e}")
         raise ExtractionError(f"Failed to extract text from '{filename}': {e}")
 
+    # Remove null bytes (\x00) and unprintable control characters (keep \t, \n, \r)
+    import re
+    text = text.replace("\x00", " ")
+    text = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]", " ", text)
+
     if not text.strip():
         logger.error(f"EXTRACT | Extraction returned empty text for '{filename}'")
         raise ExtractionError(

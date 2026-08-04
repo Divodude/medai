@@ -56,7 +56,7 @@ def _update_run_status(db: DBSession, run: PipelineRun, status: str,
         run.completed_at = datetime.utcnow()
 
     db.commit()
-    logger.debug(f"PIPELINE | Run id={run.id} status → {status}")
+    logger.debug(f"PIPELINE | Run id={run.id} status -> {status}")
 
 
 # ─── Main Pipeline Orchestrator ─────────────────────────────────────────────
@@ -129,7 +129,7 @@ def run_pipeline(
         _update_run_status(db, pipeline_run, "COMPLETED",
                            records_loaded=num_loaded)
 
-        logger.info(f"PIPELINE | ✓ Pipeline completed successfully "
+        logger.info(f"PIPELINE | [OK] Pipeline completed successfully "
                     f"(run_id={pipeline_run.id}, chunks={num_loaded})")
         logger.info("=" * 60)
 
@@ -138,7 +138,7 @@ def run_pipeline(
     except (ExtractionError, RuntimeError) as e:
         # Known pipeline errors — log and mark as FAILED
         _update_run_status(db, pipeline_run, "FAILED", error_message=str(e))
-        logger.error(f"PIPELINE | ✗ Pipeline FAILED at stage "
+        logger.error(f"PIPELINE | [FAILED] Pipeline FAILED at stage "
                      f"'{pipeline_run.status}': {e}")
         raise
 
@@ -146,5 +146,5 @@ def run_pipeline(
         # Unexpected errors — log and mark as FAILED
         _update_run_status(db, pipeline_run, "FAILED",
                            error_message=f"Unexpected error: {e}")
-        logger.error(f"PIPELINE | ✗ Pipeline FAILED with unexpected error: {e}")
+        logger.error(f"PIPELINE | [FAILED] Pipeline FAILED with unexpected error: {e}")
         raise RuntimeError(f"Pipeline failed unexpectedly: {e}")

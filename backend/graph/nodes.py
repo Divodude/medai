@@ -1,11 +1,21 @@
 import os
+import re
+import chromadb
 from langchain_core.messages import SystemMessage, ToolMessage
 
 from graph.state import RAGState
 from tools.doctor_search import search_doctors as ddg_search_doctors
 from llm_provider import get_llm, get_embeddings
 from langchain_core.tools import tool
-from langchain_community.vectorstores import Chroma
+
+
+
+def _safe_collection_name(session_id: str) -> str:
+    """Sanitize session_id for use as ChromaDB collection name (no UUID hyphens/colons)."""
+    safe = re.sub(r"[^a-zA-Z0-9_]", "_", str(session_id or "default"))
+    if not safe or not safe[0].isalpha():
+        safe = "s_" + safe
+    return safe[:63]
 
 # --- Tools ---
 @tool
@@ -24,27 +34,36 @@ def retrieve_node(state: RAGState) -> dict:
     session_id = state.get("session_id")
     question = state.get("question", "")
     
-    persist_directory = os.path.join(os.path.dirname(__file__), "..", "chroma_db")
+    persist_directory = os.path.normpath(
+        os.path.join(os.path.dirname(__file__), "..", "chroma_db")
+    )
     if not os.path.exists(persist_directory):
         return {"retrieved_context": "No documents uploaded yet."}
         
     try:
-        embeddings = get_embeddings()
-        vectorstore = Chroma(
-            embedding_function=embeddings,
-            persist_directory=persist_directory
+        embeddings_model = get_embeddings()
+        collection_name = _safe_collection_name(session_id)
+
+        client = chromadb.PersistentClient(path=persist_directory)
+
+        # Guard: collection may not exist if no document was uploaded for this session
+        existing = [c.name for c in client.list_collections()]
+        if collection_name not in existing:
+            return {"retrieved_context": "No documents uploaded yet for this session."}
+
+        collection = client.get_collection(name=collection_name)
+        query_vector = embeddings_model.embed_query(question)
+        results = collection.query(
+            query_embeddings=[query_vector],
+            n_results=min(5, collection.count()),
         )
         
-        # Filter by session_id
-        retriever = vectorstore.as_retriever(
-            search_kwargs={"filter": {"session_id": session_id}, "k": 5}
-        )
-        
-        docs = retriever.invoke(question)
-        context = "\n\n".join([doc.page_content for doc in docs])
+        docs = results.get("documents", [[]])[0]
+        context = "\n\n".join(docs)
         return {"retrieved_context": context if context else "No specific info found in report."}
     except Exception as e:
         return {"retrieved_context": f"Error retrieving context: {str(e)}"}
+
 
 
 def agent_node(state: RAGState) -> dict:
