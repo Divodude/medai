@@ -39,5 +39,16 @@ class TestAPI(unittest.TestCase):
         print("Chat response:", response.text)
         self.assertGreater(len(response.text), 0)
 
+    def test_pipeline_runs_endpoint(self):
+        response = client.get("/pipeline-runs/test_session_123")
+        self.assertEqual(response.status_code, 200)
+        res_json = response.json()
+        self.assertEqual(res_json["session_id"], "test_session_123")
+        self.assertGreater(len(res_json["pipeline_runs"]), 0)
+        latest_run = res_json["pipeline_runs"][0]
+        self.assertEqual(latest_run["status"], "COMPLETED")
+        self.assertEqual(latest_run["filename"], "report.txt")
+        print("Pipeline runs response:", res_json)
+
 if __name__ == "__main__":
     unittest.main()

@@ -9,7 +9,6 @@ from duckduckgo_search import DDGS
 
 logger = logging.getLogger(__name__)
 
-# Map of small Indian cities/towns to their parent state for broader searches
 INDIA_CITY_STATE = {
     "una": "Himachal Pradesh",
     "bilaspur": "Himachal Pradesh",

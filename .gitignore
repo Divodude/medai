@@ -18,3 +18,10 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs (ETL pipeline)
+backend/logs/
+
+# Vector Database (ChromaDB)
+backend/chroma_db/
+chroma_db/

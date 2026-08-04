@@ -31,6 +31,63 @@ def get_easyocr_reader():
         _reader = easyocr.Reader(['en'])
     return _reader
 
+
+
+
+
+from collections import Counter
+
+def multi_pass_easyocr(img):
+    """
+    Runs EasyOCR on multiple preprocessed versions of the image
+    and returns the text that appears most consistently.
+    """
+
+    reader = get_easyocr_reader()
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    variants = {
+        "original": img,
+        "gray": gray,
+        "equalized": cv2.equalizeHist(gray),
+        "adaptive": cv2.adaptiveThreshold(
+            gray,
+            255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY,
+            31,
+            10,
+        ),
+        "otsu": cv2.threshold(
+            gray,
+            0,
+            255,
+            cv2.THRESH_BINARY + cv2.THRESH_OTSU
+        )[1],
+    }
+
+    all_results = []
+
+    for name, variant in variants.items():
+        try:
+            text = " ".join(reader.readtext(variant, detail=0))
+
+            if text.strip():
+                all_results.append(text)
+
+        except Exception:
+            continue
+
+    if not all_results:
+        return ""
+
+    vote = Counter(all_results)
+
+    best_text, count = vote.most_common(1)[0]
+
+    return best_text
+
 def extract_text_from_image(file_bytes: bytes, mime: str) -> str:
     """Extract text from image using local EasyOCR."""
     reader = get_easyocr_reader()
@@ -41,8 +98,8 @@ def extract_text_from_image(file_bytes: bytes, mime: str) -> str:
     if img is None:
         raise ValueError("Could not decode image bytes for OCR.")
         
-    results = reader.readtext(img, detail=0)
-    return " ".join(results)
+    results = multi_pass_easyocr(img)
+    return results
 
 def ingest_document(file_bytes: bytes, filename: str, mime: str, session_id: str) -> Chroma:
     """

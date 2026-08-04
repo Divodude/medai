@@ -4,11 +4,11 @@ from sqlalchemy.orm import Session as DBSession
 from db.models import (
     Session,
     AnalysisResult,
-    AnalysisChunkSummary,
     DietLog,
     ExerciseLog,
     DoctorResult,
 )
+from etl_pipeline.models import PipelineRun
 
 
 # ─── Session ────────────────────────────────────────────────────────────────
@@ -47,28 +47,6 @@ def save_analysis(db: DBSession, session_id: str, data: dict) -> AnalysisResult:
     db.refresh(result)
     return result
 
-
-def save_analysis_chunk_summaries(db: DBSession, analysis_id: int, summaries: list[dict]) -> list:
-    saved = []
-    for item in summaries or []:
-        entry = AnalysisChunkSummary(
-            analysis_id=analysis_id,
-            chunk_index=item.get("chunk_index", 0),
-            summary=item.get("summary", ""),
-        )
-        db.add(entry)
-        saved.append(entry)
-    db.commit()
-    return saved
-
-
-def get_chunk_summaries_for_analysis(db: DBSession, analysis_id: int):
-    return (
-        db.query(AnalysisChunkSummary)
-        .filter(AnalysisChunkSummary.analysis_id == analysis_id)
-        .order_by(AnalysisChunkSummary.chunk_index.asc())
-        .all()
-    )
 
 
 def get_analyses_for_session(db: DBSession, session_id: str):
@@ -130,3 +108,15 @@ def save_doctor_results(db: DBSession, session_id: str, doctors: list) -> list:
 
 def get_doctor_results(db: DBSession, session_id: str):
     return db.query(DoctorResult).filter(DoctorResult.session_id == session_id).all()
+
+
+# ─── Pipeline Runs ───────────────────────────────────────────────────────────
+
+def get_pipeline_runs(db: DBSession, session_id: str):
+    """Get all pipeline runs for a session, ordered by most recent first."""
+    return (
+        db.query(PipelineRun)
+        .filter(PipelineRun.session_id == session_id)
+        .order_by(PipelineRun.started_at.desc())
+        .all()
+    )

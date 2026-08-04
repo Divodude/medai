@@ -57,18 +57,19 @@ def agent_node(state: RAGState) -> dict:
     
     system_prompt = (
         "You are an AI health assistant answering patient questions based on their uploaded medical report. "
-        "Use the retrieved context from their report to answer the question. "
-        "If they ask for doctors, always call the search_nearby_doctors tool.\n\n"
+        "Use the retrieved context from their report to answer the question in clear natural language. "
+        "CRITICAL INSTRUCTION: The only available tool is 'search_nearby_doctors'. Do NOT guess, invent, or call any other tool or function (such as get_lab_value) under any circumstance. If the user is asking for medical data, read it directly from the context below.\n\n"
         f"--- GLOBAL PATIENT PROFILE ---\n{global_profile}\n------------------------------\n\n"
         f"--- PATIENT REPORT CONTEXT ---\n{context}\n------------------------------\n"
     )
-    
+
     # Prepend system message to history and add current question
     messages = [SystemMessage(content=system_prompt)] + state.get("messages", [])
-    
-    # We don't append question as a new message if it's already the last human message in state.messages
-    # Typically, the router (chat.py) will append the question to state["messages"].
-    
-    response = llm_with_tools.invoke(messages)
-    
+
+    try:
+        response = llm_with_tools.invoke(messages)
+    except Exception as e:
+        # If Llama-3 attempts an invalid or unlisted tool call, gracefully recover via standard natural language completion
+        response = llm.invoke(messages)
+
     return {"messages": [response]}
