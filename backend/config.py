@@ -7,6 +7,6 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 GROQ_API_KEY: str = os.environ.get("GROQ_API_KEY", "")
 HF_TOKEN: str = os.environ.get("HF_TOKEN", "")
 
-GROQ_MODEL = "llama-3.1-8b-instant"
+GROQ_MODEL = "qwen/qwen3.8-27b"
 
 DATABASE_URL = "sqlite:///./health_assistant.db"
